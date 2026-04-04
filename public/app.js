@@ -69,14 +69,10 @@ auth.onAuthStateChanged(async (user) => {
 // Sign in
 googleSignInBtn.addEventListener('click', async () => {
   try {
-    await auth.signInWithPopup(googleProvider);
+    await auth.signInWithRedirect(googleProvider);
   } catch (err) {
-    if (err.code === 'auth/popup-blocked') {
-      await auth.signInWithRedirect(googleProvider);
-    } else {
-      console.error('Sign-in error:', err);
-      alert('Sign-in failed: ' + err.message);
-    }
+    console.error('Sign-in error:', err);
+    alert('Sign-in failed: ' + err.message);
   }
 });
 
