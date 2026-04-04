@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <rect width="512" height="512" rx="80" fill="#0f1117"/>
+  <!-- Sun -->
+  <circle cx="256" cy="185" r="72" fill="#f59e0b"/>
+  <!-- Sun rays -->
+  <g stroke="#f59e0b" stroke-width="7" stroke-linecap="round">
+    <line x1="256" y1="90" x2="256" y2="65"/>
+    <line x1="256" y1="305" x2="256" y2="280"/>
+    <line x1="161" y1="185" x2="136" y2="185"/>
+    <line x1="376" y1="185" x2="351" y2="185"/>
+    <line x1="186" y1="115" x2="168" y2="97"/>
+    <line x1="344" y1="273" x2="326" y2="255"/>
+    <line x1="186" y1="255" x2="168" y2="273"/>
+    <line x1="344" y1="97" x2="326" y2="115"/>
+  </g>
+  <!-- Journal lines -->
+  <g stroke="#f59e0b" stroke-width="6" stroke-linecap="round" opacity="0.6">
+    <line x1="144" y1="360" x2="368" y2="360"/>
+    <line x1="144" y1="392" x2="368" y2="392"/>
+    <line x1="144" y1="424" x2="304" y2="424"/>
+  </g>
+</svg>
