@@ -1,8 +1,11 @@
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
+const https = require('https');
 const admin = require('firebase-admin');
 const Anthropic = require('@anthropic-ai/sdk');
+
+const FIREBASE_AUTH_HOST = 'solarnotes-9c059.firebaseapp.com';
 
 // Load .env file if it exists
 const envPath = path.join(__dirname, '.env');
@@ -85,6 +88,31 @@ async function callClaude(highlightText) {
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Reverse proxy for Firebase auth handlers and SDK helpers.
+// This makes the auth handler same-origin with the app, which is required to
+// avoid sessionStorage partitioning issues that break signInWithRedirect/Popup
+// when the app and authDomain live on different eTLD+1s.
+function proxyToFirebase(req, res) {
+  const options = {
+    hostname: FIREBASE_AUTH_HOST,
+    port: 443,
+    path: req.originalUrl,
+    method: req.method,
+    headers: { ...req.headers, host: FIREBASE_AUTH_HOST },
+  };
+  const proxyReq = https.request(options, (proxyRes) => {
+    res.writeHead(proxyRes.statusCode, proxyRes.headers);
+    proxyRes.pipe(res);
+  });
+  proxyReq.on('error', (err) => {
+    console.error('Firebase proxy error:', err.message);
+    if (!res.headersSent) res.status(502).send('Bad Gateway');
+  });
+  req.pipe(proxyReq);
+}
+app.use('/__/auth', proxyToFirebase);
+app.use('/__/firebase', proxyToFirebase);
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
