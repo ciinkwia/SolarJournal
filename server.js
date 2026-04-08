@@ -76,12 +76,15 @@ try {
 // Call Claude API
 async function callClaude(highlightText) {
   const message = await anthropic.messages.create({
-    model: 'claude-opus-4-0-20250115',
+    model: 'claude-sonnet-4-5-20250929',
     max_tokens: 1024,
     system: SYSTEM_PROMPT,
     messages: [
       { role: 'user', content: highlightText }
     ],
+  }, {
+    maxRetries: 1,
+    timeout: 60000,
   });
   return message.content[0].text;
 }
