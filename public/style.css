@@ -179,50 +179,142 @@ main {
   display: none !important;
 }
 
-/* Today view */
-.today-date {
-  text-align: center;
-  color: var(--text-dim);
-  font-size: 1rem;
-  margin-bottom: 1.25rem;
+/* Today form */
+.today-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 }
 
-/* Progress dots */
-.progress-dots {
+.field-label {
+  display: block;
+  color: var(--text-dim);
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 0.4rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.field-input {
+  width: 100%;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.75rem 0.9rem;
+  font-size: 1rem;
+  font-family: inherit;
+  resize: vertical;
+  transition: border-color 0.2s;
+}
+
+.field-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.field-input::placeholder {
+  color: var(--text-dim);
+}
+
+/* Highlight slot cards */
+.highlight-slot {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1rem;
+}
+
+.slot-header {
   display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  margin-bottom: 0.65rem;
+}
+
+.slot-num {
+  display: inline-flex;
+  align-items: center;
   justify-content: center;
-  gap: 1rem;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #000;
+  font-weight: 700;
+  font-size: 0.9rem;
+  flex-shrink: 0;
+}
+
+.slot-label {
+  color: var(--text);
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.highlight-textarea {
+  width: 100%;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.75rem 0.9rem;
+  font-size: 1rem;
+  font-family: inherit;
+  resize: vertical;
+  min-height: 100px;
+  transition: border-color 0.2s;
+}
+
+.highlight-textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.highlight-textarea::placeholder {
+  color: var(--text-dim);
+}
+
+/* Completed view */
+.entry-date {
+  color: var(--text-dim);
+  font-size: 0.95rem;
   margin-bottom: 0.5rem;
 }
 
-.dot {
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  border: 2px solid var(--border);
-  background: transparent;
-  transition: all 0.3s ease;
+.entry-title {
+  color: var(--text);
+  font-size: 1.4rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
 }
 
-.dot.filled {
-  background: var(--accent);
-  border-color: var(--accent);
-  box-shadow: 0 0 12px var(--accent-glow);
+.entry-notes {
+  margin-top: 1rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1rem;
 }
 
-.progress-label {
-  text-align: center;
-  color: var(--text-dim);
-  font-size: 0.85rem;
-  margin-bottom: 1.5rem;
+.notes-label {
+  color: var(--accent);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.5rem;
 }
 
-/* Highlights list */
-.highlights-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  margin-bottom: 1.25rem;
+.notes-text {
+  color: var(--text);
+  font-size: 0.95rem;
+  white-space: pre-wrap;
+}
+
+#completed-body .highlight-card {
+  margin-bottom: 0.75rem;
 }
 
 .highlight-card {
@@ -307,59 +399,6 @@ main {
   color: var(--text-dim);
   font-size: 0.85rem;
   font-style: italic;
-}
-
-/* Add highlight section */
-.add-highlight-section {
-  display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
-}
-
-#highlight-input {
-  width: 100%;
-  background: var(--surface);
-  color: var(--text);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 0.85rem 1rem;
-  font-size: 1rem;
-  font-family: inherit;
-  resize: vertical;
-  min-height: 60px;
-  transition: border-color 0.2s;
-}
-
-#highlight-input:focus {
-  outline: none;
-  border-color: var(--accent);
-}
-
-#highlight-input::placeholder {
-  color: var(--text-dim);
-}
-
-.add-highlight-btn {
-  align-self: flex-end;
-  background: var(--accent);
-  color: #000;
-  border: none;
-  border-radius: 8px;
-  padding: 0.6rem 1.25rem;
-  font-size: 0.95rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.2s;
-  font-family: inherit;
-}
-
-.add-highlight-btn:hover {
-  background: var(--accent-hover);
-}
-
-.add-highlight-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
 }
 
 /* Complete button */
@@ -447,6 +486,12 @@ main {
   color: var(--accent);
   font-weight: 700;
   font-size: 1rem;
+}
+
+.journal-subdate {
+  color: var(--text-dim);
+  font-size: 0.8rem;
+  margin-top: 0.15rem;
 }
 
 .journal-preview {

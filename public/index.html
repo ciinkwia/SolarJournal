@@ -49,37 +49,50 @@
 
     <!-- TODAY VIEW -->
     <section id="today-view">
-      <div class="today-date" id="today-date"></div>
+      <!-- Edit form (in-progress entries) -->
+      <form id="today-form" class="today-form hidden">
+        <label class="field-label" for="title-input">Entry Title (optional)</label>
+        <input type="text" id="title-input" class="field-input" autocomplete="off" />
 
-      <!-- Progress dots -->
-      <div class="progress-dots">
-        <div class="dot" id="dot-0"></div>
-        <div class="dot" id="dot-1"></div>
-        <div class="dot" id="dot-2"></div>
-      </div>
-      <div class="progress-label" id="progress-label">0 of 3 highlights</div>
+        <div class="highlight-slot" data-index="0">
+          <div class="slot-header">
+            <span class="slot-num">1</span>
+            <span class="slot-label">Key Highlight</span>
+          </div>
+          <textarea class="highlight-textarea" data-index="0" rows="5" placeholder="What did you learn, see, or figure out today?"></textarea>
+        </div>
 
-      <!-- Highlights list -->
-      <div id="highlights-list" class="highlights-list"></div>
+        <div class="highlight-slot" data-index="1">
+          <div class="slot-header">
+            <span class="slot-num">2</span>
+            <span class="slot-label">Key Highlight</span>
+          </div>
+          <textarea class="highlight-textarea" data-index="1" rows="5" placeholder="What's another thing that stood out?"></textarea>
+        </div>
 
-      <!-- Add highlight form -->
-      <div id="add-highlight-section" class="add-highlight-section">
-        <textarea id="highlight-input" placeholder="What did you learn or encounter today?" rows="2"></textarea>
-        <button id="add-highlight-btn" class="add-highlight-btn">
-          <span class="btn-text">Add Highlight</span>
-          <span class="btn-loading hidden"><span class="spinner"></span></span>
+        <div class="highlight-slot" data-index="2">
+          <div class="slot-header">
+            <span class="slot-num">3</span>
+            <span class="slot-label">Key Highlight</span>
+          </div>
+          <textarea class="highlight-textarea" data-index="2" rows="5" placeholder="One more — anything you're still figuring out?"></textarea>
+        </div>
+
+        <label class="field-label" for="notes-input">General Notes (optional)</label>
+        <textarea id="notes-input" class="field-input" rows="3" placeholder="Any other thoughts about today..."></textarea>
+
+        <button type="submit" id="complete-btn" class="complete-btn">
+          <span class="btn-text">Complete &amp; Generate Expansions</span>
+          <span class="btn-loading hidden"><span class="spinner"></span> Expanding highlights...</span>
         </button>
-      </div>
+      </form>
 
-      <!-- Complete entry button -->
-      <button id="complete-btn" class="complete-btn hidden">
-        <span class="btn-text">Complete Entry</span>
-        <span class="btn-loading hidden"><span class="spinner"></span> Expanding highlights...</span>
-      </button>
-
-      <!-- Completed state -->
-      <div id="completed-message" class="completed-message hidden">
-        <span>&#10003;</span> Entry complete
+      <!-- Completed view (read-only with expansions) -->
+      <div id="today-completed" class="hidden">
+        <div class="completed-message">
+          <span>&#10003;</span> Entry complete
+        </div>
+        <div id="completed-body"></div>
       </div>
     </section>
 
@@ -107,7 +120,7 @@
       appId: "1:898044212836:web:37cd7f7edcb19704ed5171"
     });
   </script>
-  <script src="app.js?v=4"></script>
+  <script src="app.js?v=5"></script>
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js');

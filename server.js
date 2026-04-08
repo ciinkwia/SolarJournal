@@ -166,6 +166,8 @@ app.get('/api/entries/today', verifyAuth, async (req, res) => {
       return res.json({
         id: doc.id,
         date: data.date,
+        title: data.title || '',
+        notes: data.notes || '',
         highlights: data.highlights || [],
         status: data.status,
         completedAt: data.completedAt ? data.completedAt.toDate().toISOString() : null,
@@ -177,6 +179,8 @@ app.get('/api/entries/today', verifyAuth, async (req, res) => {
     const newEntry = {
       userId: req.user.uid,
       date,
+      title: '',
+      notes: '',
       highlights: [],
       status: 'in_progress',
       completedAt: null,
@@ -187,6 +191,8 @@ app.get('/api/entries/today', verifyAuth, async (req, res) => {
     res.json({
       id: docRef.id,
       date,
+      title: '',
+      notes: '',
       highlights: [],
       status: 'in_progress',
       completedAt: null,
@@ -198,68 +204,18 @@ app.get('/api/entries/today', verifyAuth, async (req, res) => {
   }
 });
 
-// POST /api/entries/today/highlights — add a highlight
-app.post('/api/entries/today/highlights', verifyAuth, async (req, res) => {
-  if (!db) return res.status(503).json({ error: 'Firebase is not configured.' });
-
-  const { text, date } = req.body;
-  if (!text || !text.trim()) {
-    return res.status(400).json({ error: 'Highlight text is required.' });
-  }
-  if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-    return res.status(400).json({ error: 'date is required (YYYY-MM-DD)' });
-  }
-
-  try {
-    // Find today's entry
-    const snapshot = await db.collection('journal_entries')
-      .where('userId', '==', req.user.uid)
-      .where('date', '==', date)
-      .limit(1)
-      .get();
-
-    if (snapshot.empty) {
-      return res.status(404).json({ error: 'No entry found for this date. Load today first.' });
-    }
-
-    const doc = snapshot.docs[0];
-    const data = doc.data();
-
-    if (data.status === 'completed') {
-      return res.status(400).json({ error: 'This entry is already completed.' });
-    }
-
-    if ((data.highlights || []).length >= 3) {
-      return res.status(400).json({ error: 'Already have 3 highlights. Complete this entry.' });
-    }
-
-    const highlight = {
-      text: text.trim(),
-      expansion: null,
-      addedAt: new Date().toISOString(),
-    };
-
-    const highlights = [...(data.highlights || []), highlight];
-    await doc.ref.update({ highlights });
-
-    res.json({
-      id: doc.id,
-      date: data.date,
-      highlights,
-      status: data.status,
-      completedAt: null,
-      createdAt: data.createdAt ? data.createdAt.toDate().toISOString() : new Date().toISOString(),
-    });
-  } catch (err) {
-    console.error('Add highlight error:', err.message);
-    res.status(500).json({ error: 'Failed to add highlight.' });
-  }
-});
-
-// POST /api/entries/:id/complete — complete entry and generate AI expansions
+// POST /api/entries/:id/complete — submit highlights/title/notes and generate AI expansions
 app.post('/api/entries/:id/complete', verifyAuth, async (req, res) => {
   if (!db) return res.status(503).json({ error: 'Firebase is not configured.' });
   if (!anthropic) return res.status(503).json({ error: 'Anthropic API is not configured.' });
+
+  const bodyHighlights = Array.isArray(req.body.highlights) ? req.body.highlights : null;
+  const title = typeof req.body.title === 'string' ? req.body.title.trim() : '';
+  const notes = typeof req.body.notes === 'string' ? req.body.notes.trim() : '';
+
+  if (!bodyHighlights || bodyHighlights.length !== 3 || bodyHighlights.some(t => !t || !t.trim())) {
+    return res.status(400).json({ error: 'Need exactly 3 non-empty highlights.' });
+  }
 
   try {
     const docRef = db.collection('journal_entries').doc(req.params.id);
@@ -278,26 +234,29 @@ app.post('/api/entries/:id/complete', verifyAuth, async (req, res) => {
       return res.status(400).json({ error: 'Entry is already completed.' });
     }
 
-    if ((data.highlights || []).length !== 3) {
-      return res.status(400).json({ error: 'Need exactly 3 highlights to complete.' });
-    }
+    const nowIso = new Date().toISOString();
+    const newHighlights = bodyHighlights.map(text => ({
+      text: text.trim(),
+      expansion: null,
+      addedAt: nowIso,
+    }));
 
     // Generate AI expansions for all 3 highlights in parallel
-    const expansionPromises = data.highlights.map(h =>
+    const expansions = await Promise.all(newHighlights.map(h =>
       callClaude(h.text).catch(err => {
         console.error('Claude expansion error:', err.message);
         return 'Expansion failed — try again later.';
       })
-    );
+    ));
 
-    const expansions = await Promise.all(expansionPromises);
-
-    const updatedHighlights = data.highlights.map((h, i) => ({
+    const updatedHighlights = newHighlights.map((h, i) => ({
       ...h,
       expansion: expansions[i],
     }));
 
     await docRef.update({
+      title,
+      notes,
       highlights: updatedHighlights,
       status: 'completed',
       completedAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -306,6 +265,8 @@ app.post('/api/entries/:id/complete', verifyAuth, async (req, res) => {
     res.json({
       id: doc.id,
       date: data.date,
+      title,
+      notes,
       highlights: updatedHighlights,
       status: 'completed',
       completedAt: new Date().toISOString(),
@@ -339,6 +300,8 @@ app.get('/api/entries', verifyAuth, async (req, res) => {
       return {
         id: doc.id,
         date: data.date,
+        title: data.title || '',
+        notes: data.notes || '',
         highlights: data.highlights || [],
         status: data.status,
         completedAt: data.completedAt ? data.completedAt.toDate().toISOString() : null,

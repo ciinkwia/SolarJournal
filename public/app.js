@@ -13,14 +13,13 @@ const tabNav = document.getElementById('tab-nav');
 
 // Today view elements
 const todayView = document.getElementById('today-view');
-const todayDate = document.getElementById('today-date');
-const highlightsList = document.getElementById('highlights-list');
-const highlightInput = document.getElementById('highlight-input');
-const addHighlightBtn = document.getElementById('add-highlight-btn');
-const addHighlightSection = document.getElementById('add-highlight-section');
+const todayForm = document.getElementById('today-form');
+const titleInput = document.getElementById('title-input');
+const notesInput = document.getElementById('notes-input');
+const highlightTextareas = document.querySelectorAll('.highlight-textarea');
 const completeBtn = document.getElementById('complete-btn');
-const completedMessage = document.getElementById('completed-message');
-const progressLabel = document.getElementById('progress-label');
+const todayCompleted = document.getElementById('today-completed');
+const completedBody = document.getElementById('completed-body');
 
 // Journal view elements
 const journalView = document.getElementById('journal-view');
@@ -35,7 +34,7 @@ let currentTab = 'today';
 
 // Get today's date in YYYY-MM-DD (local time)
 function getTodayDate() {
-  return new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD
+  return new Date().toLocaleDateString('en-CA');
 }
 
 // Auth headers
@@ -108,11 +107,6 @@ function formatDisplayDate(dateStr) {
   return d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
 }
 
-// Format time from ISO string
-function formatTime(iso) {
-  return new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-}
-
 // Simple markdown to HTML
 function renderMarkdown(md) {
   let html = md
@@ -143,35 +137,14 @@ function escapeHtml(str) {
   return div.innerHTML;
 }
 
-// Update progress dots
-function updateProgress() {
-  const count = todayEntry ? todayEntry.highlights.length : 0;
-  for (let i = 0; i < 3; i++) {
-    const dot = document.getElementById(`dot-${i}`);
-    if (i < count) {
-      dot.classList.add('filled');
-    } else {
-      dot.classList.remove('filled');
-    }
-  }
-  progressLabel.textContent = `${count} of 3 highlights`;
-}
-
-// Render today's view
-function renderToday() {
-  if (!todayEntry) return;
-
-  todayDate.textContent = formatDisplayDate(todayEntry.date);
-  updateProgress();
-
-  const isCompleted = todayEntry.status === 'completed';
-
-  // Render highlights
-  highlightsList.innerHTML = todayEntry.highlights.map((h, i) => `
+// Render the read-only completed view body for an entry
+function renderCompletedBody(entry) {
+  const titleHtml = entry.title ? `<h2 class="entry-title">${escapeHtml(entry.title)}</h2>` : '';
+  const dateHtml = `<div class="entry-date">${formatDisplayDate(entry.date)}</div>`;
+  const highlightsHtml = entry.highlights.map((h, i) => `
     <div class="highlight-card">
       <div class="highlight-number">Highlight ${i + 1}</div>
       <div class="highlight-text">${escapeHtml(h.text)}</div>
-      <div class="highlight-time">${formatTime(h.addedAt)}</div>
       ${h.expansion ? `
         <div class="highlight-expansion">
           <div class="expansion-label">AI Expansion</div>
@@ -180,20 +153,34 @@ function renderToday() {
       ` : ''}
     </div>
   `).join('');
+  const notesHtml = entry.notes ? `
+    <div class="entry-notes">
+      <div class="notes-label">Notes</div>
+      <div class="notes-text">${escapeHtml(entry.notes)}</div>
+    </div>
+  ` : '';
+  return dateHtml + titleHtml + highlightsHtml + notesHtml;
+}
 
-  // Show/hide input and buttons
+// Render today's view
+function renderToday() {
+  if (!todayEntry) return;
+
+  const isCompleted = todayEntry.status === 'completed';
+
   if (isCompleted) {
-    addHighlightSection.classList.add('hidden');
-    completeBtn.classList.add('hidden');
-    completedMessage.classList.remove('hidden');
-  } else if (todayEntry.highlights.length >= 3) {
-    addHighlightSection.classList.add('hidden');
-    completeBtn.classList.remove('hidden');
-    completedMessage.classList.add('hidden');
+    todayForm.classList.add('hidden');
+    todayCompleted.classList.remove('hidden');
+    completedBody.innerHTML = renderCompletedBody(todayEntry);
   } else {
-    addHighlightSection.classList.remove('hidden');
-    completeBtn.classList.add('hidden');
-    completedMessage.classList.add('hidden');
+    todayCompleted.classList.add('hidden');
+    todayForm.classList.remove('hidden');
+    // Prefill fields from existing in-progress data
+    titleInput.value = todayEntry.title || '';
+    notesInput.value = todayEntry.notes || '';
+    highlightTextareas.forEach((ta, i) => {
+      ta.value = (todayEntry.highlights && todayEntry.highlights[i]) ? todayEntry.highlights[i].text : '';
+    });
   }
 }
 
@@ -212,52 +199,19 @@ async function loadToday() {
   }
 }
 
-// Add highlight
-addHighlightBtn.addEventListener('click', async () => {
-  const text = highlightInput.value.trim();
-  if (!text) return;
-
-  addHighlightBtn.disabled = true;
-  const btnText = addHighlightBtn.querySelector('.btn-text');
-  const btnLoading = addHighlightBtn.querySelector('.btn-loading');
-  btnText.classList.add('hidden');
-  btnLoading.classList.remove('hidden');
-
-  try {
-    const headers = await getAuthHeaders();
-    const res = await fetch('/api/entries/today/highlights', {
-      method: 'POST',
-      headers: { ...headers, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text, date: getTodayDate() }),
-    });
-
-    if (!res.ok) {
-      const err = await res.json();
-      throw new Error(err.error || 'Failed to add highlight');
-    }
-
-    todayEntry = await res.json();
-    highlightInput.value = '';
-    renderToday();
-  } catch (err) {
-    alert(err.message);
-  } finally {
-    addHighlightBtn.disabled = false;
-    btnText.classList.remove('hidden');
-    btnLoading.classList.add('hidden');
-  }
-});
-
-// Ctrl+Enter to add highlight
-highlightInput.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-    addHighlightBtn.click();
-  }
-});
-
-// Complete entry
-completeBtn.addEventListener('click', async () => {
+// Submit form to complete entry
+todayForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
   if (!todayEntry) return;
+
+  const highlights = Array.from(highlightTextareas).map(ta => ta.value.trim());
+  if (highlights.some(h => !h)) {
+    alert('Please fill in all 3 highlights before completing.');
+    return;
+  }
+
+  const title = titleInput.value.trim();
+  const notes = notesInput.value.trim();
 
   completeBtn.disabled = true;
   const btnText = completeBtn.querySelector('.btn-text');
@@ -269,7 +223,8 @@ completeBtn.addEventListener('click', async () => {
     const headers = await getAuthHeaders();
     const res = await fetch(`/api/entries/${todayEntry.id}/complete`, {
       method: 'POST',
-      headers,
+      headers: { ...headers, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ highlights, title, notes }),
     });
 
     if (!res.ok) {
@@ -308,7 +263,6 @@ async function loadJournal(append = false) {
       }
       renderJournal();
 
-      // Show/hide load more
       if (entries.length >= 20) {
         loadMoreBtn.classList.remove('hidden');
       } else {
@@ -329,11 +283,15 @@ function renderJournal() {
   }
 
   journalEmpty.classList.add('hidden');
-  journalList.innerHTML = journalEntries.map(entry => `
+  journalList.innerHTML = journalEntries.map(entry => {
+    const headerTitle = entry.title ? escapeHtml(entry.title) : formatDisplayDate(entry.date);
+    const headerSub = entry.title ? formatDisplayDate(entry.date) : '';
+    return `
     <div class="journal-card" data-id="${entry.id}">
       <div class="journal-card-header" onclick="toggleJournalCard('${entry.id}')">
         <div>
-          <div class="journal-date">${formatDisplayDate(entry.date)}</div>
+          <div class="journal-date">${headerTitle}</div>
+          ${headerSub ? `<div class="journal-subdate">${headerSub}</div>` : ''}
           <div class="journal-preview">${entry.highlights.map(h => escapeHtml(h.text)).join(' / ')}</div>
         </div>
         <div class="journal-meta">
@@ -354,9 +312,16 @@ function renderJournal() {
             ` : ''}
           </div>
         `).join('')}
+        ${entry.notes ? `
+          <div class="entry-notes">
+            <div class="notes-label">Notes</div>
+            <div class="notes-text">${escapeHtml(entry.notes)}</div>
+          </div>
+        ` : ''}
       </div>
     </div>
-  `).join('');
+  `;
+  }).join('');
 }
 
 // Toggle journal card
@@ -376,7 +341,6 @@ window.deleteEntry = async function(id) {
       journalEntries = journalEntries.filter(e => e.id !== id);
       renderJournal();
 
-      // If we deleted today's entry, reload today
       if (todayEntry && todayEntry.id === id) {
         todayEntry = null;
         loadToday();
