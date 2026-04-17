@@ -207,6 +207,46 @@ app.get('/api/entries/today', verifyAuth, async (req, res) => {
   }
 });
 
+// PUT /api/entries/:id/save — save draft (title, notes, highlights) without completing
+app.put('/api/entries/:id/save', verifyAuth, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Firebase is not configured.' });
+
+  try {
+    const docRef = db.collection('journal_entries').doc(req.params.id);
+    const doc = await docRef.get();
+
+    if (!doc.exists) {
+      return res.status(404).json({ error: 'Entry not found.' });
+    }
+
+    const data = doc.data();
+    if (data.userId !== req.user.uid) {
+      return res.status(403).json({ error: 'Not authorized.' });
+    }
+
+    if (data.status === 'completed') {
+      return res.status(400).json({ error: 'Entry is already completed.' });
+    }
+
+    const updates = {};
+    if (typeof req.body.title === 'string') updates.title = req.body.title.trim();
+    if (typeof req.body.notes === 'string') updates.notes = req.body.notes.trim();
+    if (Array.isArray(req.body.highlights)) {
+      updates.highlights = req.body.highlights.map(text => ({
+        text: (text || '').trim(),
+        expansion: null,
+        addedAt: new Date().toISOString(),
+      }));
+    }
+
+    await docRef.update(updates);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Save draft error:', err.message);
+    res.status(500).json({ error: 'Failed to save draft.' });
+  }
+});
+
 // POST /api/entries/:id/complete — submit highlights/title/notes and generate AI expansions
 app.post('/api/entries/:id/complete', verifyAuth, async (req, res) => {
   if (!db) return res.status(503).json({ error: 'Firebase is not configured.' });
@@ -286,31 +326,32 @@ app.get('/api/entries', verifyAuth, async (req, res) => {
   if (!db) return res.status(503).json({ error: 'Firebase is not configured.' });
 
   try {
-    let query = db.collection('journal_entries')
+    const snapshot = await db.collection('journal_entries')
       .where('userId', '==', req.user.uid)
-      .where('status', '==', 'completed')
-      .orderBy('date', 'desc')
-      .limit(20);
+      .get();
+
+    let entries = snapshot.docs
+      .map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          date: data.date,
+          title: data.title || '',
+          notes: data.notes || '',
+          highlights: data.highlights || [],
+          status: data.status,
+          completedAt: data.completedAt ? data.completedAt.toDate().toISOString() : null,
+          createdAt: data.createdAt ? data.createdAt.toDate().toISOString() : new Date().toISOString(),
+        };
+      })
+      .filter(e => e.status === 'completed')
+      .sort((a, b) => b.date.localeCompare(a.date));
 
     if (req.query.before) {
-      query = query.where('date', '<', req.query.before);
+      entries = entries.filter(e => e.date < req.query.before);
     }
 
-    const snapshot = await query.get();
-
-    const entries = snapshot.docs.map(doc => {
-      const data = doc.data();
-      return {
-        id: doc.id,
-        date: data.date,
-        title: data.title || '',
-        notes: data.notes || '',
-        highlights: data.highlights || [],
-        status: data.status,
-        completedAt: data.completedAt ? data.completedAt.toDate().toISOString() : null,
-        createdAt: data.createdAt ? data.createdAt.toDate().toISOString() : new Date().toISOString(),
-      };
-    });
+    entries = entries.slice(0, 20);
 
     res.json(entries);
   } catch (err) {

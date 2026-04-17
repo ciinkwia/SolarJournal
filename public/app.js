@@ -27,10 +27,14 @@ const journalList = document.getElementById('journal-list');
 const journalEmpty = document.getElementById('journal-empty');
 const loadMoreBtn = document.getElementById('load-more-btn');
 
+// Save indicator
+const saveIndicator = document.getElementById('save-indicator');
+
 let currentUser = null;
 let todayEntry = null;
 let journalEntries = [];
 let currentTab = 'today';
+let saveTimeout = null;
 
 // Get today's date in YYYY-MM-DD (local time)
 function getTodayDate() {
@@ -353,3 +357,47 @@ window.deleteEntry = async function(id) {
 
 // Load more
 loadMoreBtn.addEventListener('click', () => loadJournal(true));
+
+// Auto-save drafts
+function scheduleSave() {
+  if (saveTimeout) clearTimeout(saveTimeout);
+  if (saveIndicator) saveIndicator.textContent = '';
+  saveTimeout = setTimeout(saveDraft, 2000);
+}
+
+async function saveDraft() {
+  if (!todayEntry || todayEntry.status === 'completed') return;
+
+  const highlights = Array.from(highlightTextareas).map(ta => ta.value.trim());
+  const title = titleInput.value.trim();
+  const notes = notesInput.value.trim();
+
+  if (!title && !notes && highlights.every(h => !h)) return;
+
+  if (saveIndicator) saveIndicator.textContent = 'Saving...';
+
+  try {
+    const headers = await getAuthHeaders();
+    const res = await fetch(`/api/entries/${todayEntry.id}/save`, {
+      method: 'PUT',
+      headers: { ...headers, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ highlights, title, notes }),
+    });
+
+    if (res.ok) {
+      if (saveIndicator) {
+        saveIndicator.textContent = 'Saved';
+        setTimeout(() => {
+          if (saveIndicator.textContent === 'Saved') saveIndicator.textContent = '';
+        }, 3000);
+      }
+    }
+  } catch (err) {
+    console.error('Auto-save failed:', err);
+    if (saveIndicator) saveIndicator.textContent = 'Save failed';
+  }
+}
+
+titleInput.addEventListener('input', scheduleSave);
+notesInput.addEventListener('input', scheduleSave);
+highlightTextareas.forEach(ta => ta.addEventListener('input', scheduleSave));

@@ -81,10 +81,13 @@
         <label class="field-label" for="notes-input">General Notes (optional)</label>
         <textarea id="notes-input" class="field-input" rows="3" placeholder="Any other thoughts about today..."></textarea>
 
-        <button type="submit" id="complete-btn" class="complete-btn">
-          <span class="btn-text">Complete &amp; Generate Expansions</span>
-          <span class="btn-loading hidden"><span class="spinner"></span> Expanding highlights...</span>
-        </button>
+        <div class="form-footer">
+          <span id="save-indicator" class="save-indicator"></span>
+          <button type="submit" id="complete-btn" class="complete-btn">
+            <span class="btn-text">Finish &amp; Generate Expansions</span>
+            <span class="btn-loading hidden"><span class="spinner"></span> Expanding highlights...</span>
+          </button>
+        </div>
       </form>
 
       <!-- Completed view (read-only with expansions) -->
@@ -120,7 +123,7 @@
       appId: "1:898044212836:web:37cd7f7edcb19704ed5171"
     });
   </script>
-  <script src="app.js?v=5"></script>
+  <script src="app.js?v=6"></script>
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js');

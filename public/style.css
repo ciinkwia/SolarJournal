@@ -401,6 +401,22 @@ main {
   font-style: italic;
 }
 
+/* Form footer */
+.form-footer {
+  margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.save-indicator {
+  color: var(--text-dim);
+  font-size: 0.8rem;
+  min-height: 1.2em;
+  transition: opacity 0.3s;
+}
+
 /* Complete button */
 .complete-btn {
   display: block;
@@ -415,7 +431,6 @@ main {
   cursor: pointer;
   transition: background 0.2s;
   font-family: inherit;
-  margin-top: 1rem;
 }
 
 .complete-btn:hover {

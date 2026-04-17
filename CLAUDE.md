@@ -57,9 +57,11 @@ Single-page form modeled after the user's BJJ journal app:
 1. **Entry Title** (optional text input)
 2. Three numbered **Key Highlight** cards, each with a large textarea
 3. **General Notes** (optional textarea)
-4. "Complete & Generate Expansions" submit button
+4. **"Finish & Generate Expansions"** submit button
 
-On submit, the front-end POSTs `{highlights: [t1,t2,t3], title, notes}` to `/api/entries/:id/complete`. Server fires 3 parallel `callClaude` requests, stores results, and returns the completed entry, which is then rendered read-only with the AI expansions inline under each highlight.
+**Save-as-you-go:** Highlights auto-save as drafts 2 seconds after you stop typing (`PUT /api/entries/:id/save`). A subtle "Saving..." / "Saved" indicator appears above the finish button. You can fill in highlights throughout the day and come back to the form — your work persists.
+
+On submit ("Finish"), the front-end POSTs `{highlights: [t1,t2,t3], title, notes}` to `/api/entries/:id/complete`. Server fires 3 parallel `callClaude` requests, stores results, and returns the completed entry, which is then rendered read-only with the AI expansions inline under each highlight.
 
 ---
 
@@ -68,11 +70,10 @@ On submit, the front-end POSTs `{highlights: [t1,t2,t3], title, notes}` to `/api
 All require `Authorization: Bearer <Firebase ID token>`.
 
 - `GET /api/entries/today?date=YYYY-MM-DD` — get or lazily create today's in-progress entry.
+- `PUT /api/entries/:id/save` — body `{highlights: [strings], title, notes}`. Saves draft without completing. Used by auto-save (2s debounce after typing stops). Returns `{success: true}`.
 - `POST /api/entries/:id/complete` — body `{highlights: [3 strings], title, notes}`. Generates expansions, marks completed.
-- `GET /api/entries?before=YYYY-MM-DD` — paginated list of completed entries (20 per page).
+- `GET /api/entries?before=YYYY-MM-DD` — paginated list of completed entries (20 per page). Filters/sorts in JS to avoid Firestore composite index requirements.
 - `DELETE /api/entries/:id` — delete an entry.
-
-The old `POST /api/entries/today/highlights` endpoint (add-one-at-a-time) was removed when we refactored the Today view.
 
 ---
 
@@ -112,7 +113,10 @@ Made-up model identifiers will silently fail. Stick to known-good ones from the 
 ### 5. Service worker cache traps
 Original SW aggressively cached `app.js`. After shipping fixes, phones kept running old code. Current SW (`public/sw.js`) self-unregisters and clears all caches on activate. Combined with `?v=N` query-string bumps on the script tag, this is the safe way to ship JS updates. Don't reintroduce caching logic without a versioning strategy.
 
-### 6. Render free-tier cold starts
+### 6. Firestore composite indexes
+The `GET /api/entries` query originally used `.where('userId').where('status', '==', 'completed').orderBy('date', 'desc')`, which requires a composite index. Without one, the query silently returns nothing. Fixed by fetching all user entries and filtering/sorting in JS on the server. For a single-user personal journal the data volume is negligible.
+
+### 7. Render free-tier cold starts
 Service spins down after ~15 min idle. First request after a cold start can take 30-60s. If `/complete` ever times out, suspect Anthropic latency × 3 parallel calls + cold start, not necessarily a bug.
 
 ---
@@ -132,4 +136,4 @@ Service spins down after ~15 min idle. First request after a cold start can take
 
 ---
 
-**Last updated:** 2026-04-08 (initial creation after Today-view refactor + auth fixes)
+**Last updated:** 2026-04-17 (save-as-you-go drafts, journal query fix for composite index issue)
